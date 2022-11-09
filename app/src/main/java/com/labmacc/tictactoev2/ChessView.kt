@@ -13,6 +13,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import java.lang.Exception
 
 var winner = FREE
 var chess = IntArray(9) { FREE }
@@ -26,7 +27,7 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
     var message = yourTurnMessage
 
     var waitingAgent = false
-    val remoteAgent = RemoteAgent().retrofit.create(PostChess::class.java)
+    val remoteAgent = RemoteAgent().retrofit.create(PostChessBoard::class.java)
 
     init {
         setOnTouchListener(this)
@@ -40,16 +41,21 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
         if (actions.size>0) chess[actions.shuffled().first()]=AGENT
 
     }
-    suspend fun agentMove() //Call a remote agent
+    suspend fun agentMove():Boolean //Call a remote agent
     {
       // agentMoveLocal();return
       //Send the chessboardboard configuration
+        try {
+            val reply = remoteAgent.doGet(JSONArray(chess))
+            Log.i("REPLY",reply.body().toString())
+            chess[reply.body()!!.toInt()]= AGENT
+            return true
 
-      val reply = remoteAgent.doGet(JSONArray(chess))
-
-      Log.i("REPLY",reply.body().toString())
-      chess[reply.body()!!.toInt()]= AGENT
-
+        }
+        catch (e : Exception){
+            Log.i("NET","Failure..."+e.toString())
+            return false
+        }
 
     }
 
@@ -89,9 +95,13 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
                 {
                     message=agentTurnMessage
                     waitingAgent=true
-                    agentMove()
+                    val r = agentMove()
                     waitingAgent=false
                     message=yourTurnMessage
+                    if (!r) {
+                        message="SORRY, NO REPLY FROM AGENT.."
+                        waitingAgent=true
+                    }
                     checkwinner()
                     invalidate()
                 }
@@ -160,78 +170,34 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
         }
 
     }
-    fun checkwinner() //check if someone wins
-    {
-        Log.i(TAG,"CHECK WINNER...")
-        var a = 0
-        var b = 0
-        var c = 0
-        Log.i("WINNER",""
-                +chess[0]
-                +" "+chess[1]
-                +" "+chess[2]
-                +" "+chess[3]
-                +" "+chess[4]
-                +" "+chess[5]
-                +" "+chess[6]
-                +" "+chess[7]
-                +" "+chess[8]
-        )
-        winner = FREE
-        //check horizontal lines
-        for (k in 0..8) {
-            if (chess[k] == USER) a += 1
-            if (chess[k] == AGENT) b += 1
-            if (chess[k] != FREE) c += 1
-            if ((k == 2) or (k == 5) or (k == 8)) {
-                if (a == 3) {
-                    winner = USER;return
-                }
-                if (b == 3) {
-                    winner = AGENT;return
-                }
-                a = 0;b = 0
-            }
-            print(" ciao")
-            Log.i("WINNER","Agent: "+b)
-            if (c == 9) { winner = FAIR;return}
+    fun checkwinner(){
+        val winningConf = arrayOf(
+            arrayOf(0,1,2),
+            arrayOf(3,4,5),
+            arrayOf(6,7,8),
+
+            arrayOf(0,3,6),
+            arrayOf(1,4,7),
+            arrayOf(2,5,8),
+
+            arrayOf(0,4,8),
+            arrayOf(2,4,6),
+            )
+
+        for (who in listOf(USER,AGENT))
+        for ( i in 0..7){
+            if ((chess[winningConf[i][0]]==who)&&
+                (chess[winningConf[i][1]]==who)&&
+                (chess[winningConf[i][2]]==who)
+            )
+            { winner = who; return}
         }
-        //check vertical lines
-        for (offset in 0..2)
-            for (k in listOf(0, 3, 6)) {
-                if (chess[k + offset] == USER) a += 1
-                if (chess[k + offset] == AGENT) b += 1
-                if (a == 3) {
-                    winner = USER;return
-                }
-                if (b == 3) {
-                    winner = AGENT;return
-                }
-                if (k == 6) {
-                    a = 0;b = 0
-                }
-            }
-        //check diagonals
-        for (k in listOf(0, 4, 8)) {
-            if (chess[k] == USER) a += 1
-            if (chess[k] == AGENT) b += 1
-            if (a == 3) {
-                winner = USER;return
-            }
-            if (b == 3) {
-                winner = AGENT;return
-            }
+        var draw=true
+        for ( i in 0..8){
+            draw=draw  and (chess[i]!=FREE)
         }
-        a = 0;b = 0
-        for (k in listOf(2, 4, 6)) {
-            if (chess[k] == USER) a += 1
-            if (chess[k] == AGENT) b += 1
-            if (a == 3) {
-                winner = USER;return
-            }
-            if (b == 3) {
-                winner = AGENT;return
-            }
-        }
+        if (draw) winner= FAIR
+
     }
+
 }
