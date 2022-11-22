@@ -8,6 +8,9 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -20,6 +23,7 @@ var chess = IntArray(9) { FREE }
 
 class ChessView(context: Context?) :  View(context), View.OnTouchListener {
 
+
     val yourTurnMessage="You Move"
     val agentTurnMessage="Agent Move"
     val waitingMessage="Waiting for the agent"
@@ -29,9 +33,19 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
     var waitingAgent = false
     val remoteAgent = RemoteAgent().retrofit.create(PostChessBoard::class.java)
 
+    private  var remoteChessboard =
+        Firebase
+            .database("https://tictactoev2-334d2-default-rtdb.europe-west1.firebasedatabase.app/")
+            .getReference("chessboard")
+
+    private  var remoteWinner =
+        Firebase
+            .database("https://tictactoev2-334d2-default-rtdb.europe-west1.firebasedatabase.app/")
+            .getReference("winner")
+
     init {
         setOnTouchListener(this)
-    }
+        }
 
     suspend fun agentMoveLocal() //Function used for testing
     {
@@ -43,6 +57,7 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
     }
     suspend fun agentMove():Boolean //Call a remote agent
     {
+       chess[AI.doMove(chess)]=AGENT;return true
       // agentMoveLocal();return
       //Send the chessboardboard configuration
         try {
@@ -68,8 +83,11 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
                 {
                     for (i in 0..8){
                         chess[i]=FREE
+                        remoteChessboard.setValue(Gson().toJson(chess).toString())
                     }
                     winner=FREE
+                    remoteWinner.setValue(Gson().toJson(winner).toString())
+
                     message=yourTurnMessage
                     invalidate()
                     return true
@@ -84,12 +102,14 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
                 val k = 3 * i + j
                 Log.i(TAG+k," "+k)
                 if (chess[k] != FREE) return true
-                if ((winner==AGENT) or (winner==USER)) return true
 
                 chess[k] = USER
                 checkwinner()
+                remoteChessboard.setValue(Gson().toJson(chess).toString())
+                remoteWinner.setValue(Gson().toJson(winner).toString())
+
                 invalidate()
-                if (winner==USER) return true
+                if (winner!=FREE) return true
 
                 GlobalScope.launch(Dispatchers.IO)
                 {
@@ -103,6 +123,8 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
                         waitingAgent=true
                     }
                     checkwinner()
+                    remoteChessboard.setValue(Gson().toJson(chess).toString())
+                    remoteWinner.setValue(Gson().toJson(winner).toString())
                     invalidate()
                 }
 
@@ -171,6 +193,8 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
 
     }
     fun checkwinner(){
+
+
         val winningConf = arrayOf(
             arrayOf(0,1,2),
             arrayOf(3,4,5),

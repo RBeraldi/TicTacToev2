@@ -14,14 +14,6 @@ val FAIR = 3
 
 
 
-
-val TAG_GAME = "Game"
-var playNumber = 1
-var userwin = 0
-var agentwin = 0
-var fair = 0
-
-
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -21,8 +21,8 @@ class RemoteAgent {
     lateinit var retrofit : Retrofit
 
     init {
-        val baseUrl = "https://robertoberaldi.pythonanywhere.com3/"
-        //val baseUrl = "http://192.168.1.248:8080/"
+        val baseUrl = "https://robertoberaldi.pythonanywhere.com/"
+       // val baseUrl = "http://192.168.1.248:8080/"
         //val baseUrl = "http://172.20.10.5:8080/"
 
         try {

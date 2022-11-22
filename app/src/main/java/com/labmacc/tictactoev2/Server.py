@@ -9,6 +9,7 @@ class myHUB(Resource):
 
     def get(self):
         board = json.loads(request.args.get('chessboard'))
+
         agentMoves = []
         for i in range(9):
             if (board[i]==0): agentMoves.append(i)
