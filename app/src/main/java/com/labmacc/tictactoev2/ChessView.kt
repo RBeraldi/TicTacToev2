@@ -59,7 +59,7 @@ class ChessView(context: Context?) :  View(context), View.OnTouchListener {
     {
        chess[AI.doMove(chess)]=AGENT;return true
       // agentMoveLocal();return
-      //Send the chessboardboard configuration
+      //Send the chessboard configuration
         try {
             val reply = remoteAgent.doGet(JSONArray(chess))
             Log.i("REPLY",reply.body().toString())
